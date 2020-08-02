@@ -11,7 +11,7 @@ namespace Server.Helpers
     public class KafkaHelpers
     {
         public static readonly string BootstrapServers = Environment.GetEnvironmentVariable("WEATHERSTDR_KAFKA_URL") ?? "kafka1.cfei.dk:9092,kafka2.cfei.dk:9092,kafka3.cfei.dk:9092";
-        public static readonly string NewSubscriptionsTopic = Environment.GetEnvironmentVariable("WEATHERSTDR_NEW_SUBSCRIPTION_TOPIC") ?? "new-subscriptions";
+        public static readonly string SubscriptionActionsTopic = Environment.GetEnvironmentVariable("WEATHERSTDR_SUBSCRIPTION_ACTION_TOPIC") ?? "subscriptions-actions";
         // public static readonly string NewSubscriptionsResponseTopic = Environment.GetEnvironmentVariable("WEATHERSTDR_NEW_SUBSCRIPTION_RESPONSE_TOPIC") ?? "new-subscriptions-response";
         public static readonly string WeatherDataTopic = Environment.GetEnvironmentVariable("WEATHERSTDR_WEATHER_DATA_TOPIC") ?? "weather-data";
 

@@ -42,8 +42,11 @@ services:
 
 - `WEATHERSTDR_KERBEROS_PRINCIPAL`: The principal that the driver should use from the kerberos server. Required if you want to supply your own keytab through volumes.
 
-- `WEATHERSTDR_NEW_SUBSCRIPTION_TOPIC`: If you would like to manually configure what topic the driver listens for new subscriptions through kafka, you can se it with this variable. Default is the topic 'new-subscriptions'.
+- `WEATHERSTDR_SUBSCRIPTION_ACTION_TOPIC`: If you would like to manually configure what topic the driver listens for subscription actions through kafka, you can se it with this variable. Default is the topic 'subscriptions-actions'.
 
 - `WEATHERSTDR_NEW_SUBSCRIPTION_RESPONSE_TOPIC`: If you send a request to start a new subscription and you would like a confirmation / error on that request you can listen on this topic. There will be responses with a HTTP status code and a message. It defaults to 'new-subscriptions-response'
   
 - `WEATHERSTDR_WEATHER_DATA_TOPIC`: The kafka-topic the driver will send data to. Default is the topic 'weather-data'
+
+## Sending a Subscription action
+TODO

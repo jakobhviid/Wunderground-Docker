@@ -74,9 +74,9 @@ namespace Server.Helpers
             var amountOfReplicationForCluster = (short)(amountOfBrokersInCluster <= 1 ? 1 : amountOfBrokersInCluster - 1);
 
             // Testing if topics contains the two topics we use
-            if (!clusterTopics.Contains(KafkaHelpers.NewSubscriptionsTopic))
+            if (!clusterTopics.Contains(KafkaHelpers.SubscriptionActionsTopic))
             {
-                await CreateTopic(adminClient, logger, KafkaHelpers.NewSubscriptionsTopic, replicationFactor: amountOfReplicationForCluster);
+                await CreateTopic(adminClient, logger, KafkaHelpers.SubscriptionActionsTopic, replicationFactor: amountOfReplicationForCluster);
             }
             if (!clusterTopics.Contains(KafkaHelpers.WeatherDataTopic))
             {

@@ -57,11 +57,11 @@ namespace Server.BackgroundWorkers
                     _ = Task.Run(() => StartTimer(subscription));
                 }
 
-                ListenForNewSubscriptions(stoppingToken, subscriptions);
+                ListenForSubscriptionsActions(stoppingToken, subscriptions);
             }
         }
 
-        public async void ListenForNewSubscriptions(CancellationToken stoppingToken, List<Subscription> subscriptions)
+        public async void ListenForSubscriptionsActions(CancellationToken stoppingToken, List<Subscription> subscriptions)
         {
             // Listening and waiting for new subscriptions
             var consumerConfig = new ConsumerConfig
@@ -78,9 +78,9 @@ namespace Server.BackgroundWorkers
                 {
                     var repo = scope.ServiceProvider.GetRequiredService<ISubscriptionRepo>();
 
-                    consumer.Subscribe(KafkaHelpers.NewSubscriptionsTopic);
+                    consumer.Subscribe(KafkaHelpers.SubscriptionActionsTopic);
 
-                    _logger.LogInformation("Listening for new subscription requests");
+                    _logger.LogInformation("Listening for subscription action requests");
                     while (!stoppingToken.IsCancellationRequested)
                     {
                         try
@@ -91,23 +91,32 @@ namespace Server.BackgroundWorkers
                             var messageJsonString = consumeResult.Message.Value;
 
                             // Checking format required.
-                            NewSubscriptionRequestDTO request = JsonConvert.DeserializeObject<NewSubscriptionRequestDTO>(messageJsonString);
+                            SubscriptionRequestDTO request = JsonConvert.DeserializeObject<SubscriptionRequestDTO>(messageJsonString);
 
-                            _logger.LogInformation("A new subscription request has arrived");
-
-                            var subscription = new Subscription
+                            _logger.LogInformation("A subscription action request has arrived");
+                            switch (request.Action)
                             {
-                                StationId = request.StationId,
-                                IntervalSeconds = request.IntervalSeconds
-                            };
-                            // persisting the newly added subscription
-                            await repo.AddSubscription(subscription);
+                                case SubscriptionAction.CREATE:
+                                    var subscription = new Subscription
+                                    {
+                                        StationId = request.StationId,
+                                        IntervalSeconds = request.IntervalSeconds
+                                    };
+                                    // persisting the newly added subscription
+                                    await repo.AddSubscription(subscription);
 
-                            // adding it to the list of subscriptions
-                            subscriptions.Add(subscription);
+                                    // adding it to the list of subscriptions
+                                    subscriptions.Add(subscription);
 
-                            // starting the subscription. I want this to run in the background. So I discard the result  with '_'
-                            _ = Task.Run(() => StartTimer(subscription));
+                                    // starting the subscription. I want this to run in the background. So I discard the result  with '_'
+                                    _ = Task.Run(() => StartTimer(subscription));
+                                    break;
+                                case SubscriptionAction.DELETE:
+                                    TODO:
+                                    break;
+                                default:
+                                    throw new Newtonsoft.Json.JsonException("Invalid Subscription action");
+                            }
                         }
                         catch (ConsumeException ex)
                         {
@@ -137,7 +146,7 @@ namespace Server.BackgroundWorkers
                 using var scope = _services.CreateScope();
                 var wundergroundService = scope.ServiceProvider.GetRequiredService<IWundergroundService>();
                 var data = await wundergroundService.GetCurrentConditionsAsync(subscription.StationId);
-                
+
                 await KafkaHelpers.SendMessageAsync(KafkaHelpers.WeatherDataTopic, data, _producer);
             }
             catch (HttpRequestException e)
