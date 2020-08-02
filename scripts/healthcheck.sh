@@ -1,0 +1,1 @@
+# Check at localhost:port/health and then get staus

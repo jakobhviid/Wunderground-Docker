@@ -1,0 +1,11 @@
+version: "3"
+
+services:
+  wunderground:
+    build: ./
+    container_name: weather_station_driver
+    environment:
+      WEATHERSTDR_WUND_API_KEY: "${API_KEY}"
+      WEATHERSTDR_INITIAL_SUBSCRIPTIONS: StationId=IODENS3;Interval=5,StationId=IKASTR4;Interval=10
+
+    
