@@ -29,12 +29,12 @@ namespace Server.Services
 
         public async Task<CurrentConditions> GetCurrentConditionsAsync(string stationId)
         {
-            var client = _httpClientFactory.CreateClient("Wunderground");
+            var client = _httpClientFactory.CreateClient("WundergroundCurrent");
 
             return await _retryPolicy.ExecuteAsync(async () =>
             {
                 var response = await client.GetAsync(
-                    $"observations/current?stationId={stationId.Trim()}&format=json&units=m&apiKey={WundergroundAPIKey.Trim()}");
+                    $"stationId={stationId.Trim()}&format=json&units=m&apiKey={WundergroundAPIKey.Trim()}");
 
                 response.EnsureSuccessStatusCode(); // Throws error if not successful
 
@@ -56,6 +56,43 @@ namespace Server.Services
                     if (serialisedResponse == null) throw new HttpRequestException("Improper response format");
 
                     return serialisedResponse.Observations[0];
+                }
+                catch (JsonSerializationException ex)
+                {
+                    throw new HttpRequestException(ex.Message);
+                }
+            });
+        }
+
+        public async Task<Wunderground5DayForecast> Get5DayForecast(string geoCode)
+        {
+            var client = _httpClientFactory.CreateClient("WundergroundForecast");
+
+            return await _retryPolicy.ExecuteAsync(async () =>
+            {
+                var response = await client.GetAsync(
+                    $"geocode={geoCode.Trim()}&format=json&units=m&language=en-US&apiKey={WundergroundAPIKey.Trim()}");
+
+                response.EnsureSuccessStatusCode(); // Throws error if not successful
+
+                if (
+                    response.StatusCode == HttpStatusCode.NotFound ||
+                    response.StatusCode == HttpStatusCode.NoContent
+                    ) throw new HttpRequestException(response.StatusCode.ToString());
+
+
+                string responseString = await response.Content.ReadAsStringAsync();
+
+                // safe guarding
+                if (responseString == null) throw new HttpRequestException("Improper response format");
+
+                try
+                {
+                    var serialisedResponse = JsonConvert.DeserializeObject<Wunderground5DayForecast>(responseString);
+                    // safe guarding
+                    if (serialisedResponse == null) throw new HttpRequestException("Improper response format");
+
+                    return serialisedResponse;
                 }
                 catch (JsonSerializationException ex)
                 {

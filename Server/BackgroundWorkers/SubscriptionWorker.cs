@@ -112,7 +112,7 @@ namespace Server.BackgroundWorkers
                                     _ = Task.Run(() => StartTimer(subscription));
                                     break;
                                 case SubscriptionAction.DELETE:
-                                    TODO:
+                                    // TODO: Delete
                                     break;
                                 default:
                                     throw new Newtonsoft.Json.JsonException("Invalid Subscription action");

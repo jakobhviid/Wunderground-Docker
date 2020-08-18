@@ -37,9 +37,14 @@ namespace Server
             services.AddHostedService<SubscriptionWorker>();
 
             services.AddSingleton<IWundergroundService, WundergroundService>();
-            services.AddHttpClient("Wunderground", client =>
+            services.AddHttpClient("WundergroundCurrent", client =>
             {
-                client.BaseAddress = new Uri("https://api.weather.com/v2/pws/");
+                client.BaseAddress = new Uri("https://api.weather.com/v2/pws/observations/current?");
+                client.DefaultRequestHeaders.Add("User-Agent", "SDUWeatherStationDriver");
+            });
+            services.AddHttpClient("WundergroundForecast", client => 
+            {
+                client.BaseAddress = new Uri("https://api.weather.com/v3/wx/forecast/daily/5day?");
                 client.DefaultRequestHeaders.Add("User-Agent", "SDUWeatherStationDriver");
             });
         }
