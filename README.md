@@ -26,7 +26,7 @@ services:
 
 - `WEATHERSTDR_KAFKA_URL`: Comma seperated list of one or more kafka urls. It will default to cfei's own kafka cluster 'kafka1.cfei.dk:9092,kafka2.cfei.dk:9092,kafka3.cfei.dk:9092'.
 
-- `WEATHERSTDR_INITIAL_SUBSCRIPTIONS`: With this variable it's possible to define wunderground stations which the driver will start to pull from, once started. It has to be a comma-seperated string with the format "StationId=REQUIRED;Interval=REQUIRED". Where the interval is in seconds. (example: `StationId=IODENS3;Interval=5,StationId=IKASTR4;Interval=10`). Please note that if you have specified this environment variable and the container restarts at some point, the subscriptions will not be added again. This environment variable is only effective the very first time the container is started.
+- `WEATHERSTDR_INITIAL_SUBSCRIPTIONS`: With this variable it's possible to define wunderground stations which the driver will start to pull from, once started. It has to be a pipe-seperated string with the format "StationId=REQUIRED;Interval=REQUIRED". Where the interval is in seconds. (example: `StationId=IODENS3;Interval=5|StationId=IKASTR4;Interval=10`). Please note that if you have specified this environment variable and the container restarts at some point, the subscriptions will not be added again. This environment variable is only effective the very first time the container is started.
 
 - `WEATHERSTDR_KERBEROS_PUBLIC_URL`: Public URL of the kerberos server to use. Required if the Kafka URL has SASL authentication.
 
