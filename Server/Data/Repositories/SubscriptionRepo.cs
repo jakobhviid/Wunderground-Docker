@@ -34,43 +34,84 @@ namespace Server.Data.Repositories
 
         }
 
-        public async Task<List<Subscription>> GetAllSubScriptions()
-        {
-            return await _retryPolicy.ExecuteAsync(async () => await _context.Subscriptions.ToListAsync());
-        }
-
-        public async Task<Subscription> GetSubscription(int id)
+        public async Task<CurrentConditionSubscription> GetCurrentConditionSubscription(int id)
         {
             return await _retryPolicy.ExecuteAsync(async () =>
-                await _context.Subscriptions
-                    .Where(s => s.SubscriptionId == id)
-                    .SingleOrDefaultAsync()
+            await _context.CurrentConditionSubscriptions
+                .Where(s => s.SubscriptionId == id)
+                .SingleOrDefaultAsync()
             );
         }
 
-        public async Task AddSubscription(Subscription subscription)
+        public async Task<ForecastSubscription> GetForecastSubscription(int id)
+        {
+            return await _retryPolicy.ExecuteAsync(async () =>
+            await _context.ForecastSubscriptions
+                .Where(s => s.SubscriptionId == id)
+                .SingleOrDefaultAsync()
+            );
+        }
+
+        public async Task<List<CurrentConditionSubscription>> GetAllCurrentConditionSubScriptions()
+        {
+            return await _retryPolicy.ExecuteAsync(async () => await _context.CurrentConditionSubscriptions.ToListAsync());
+        }
+
+        public async Task<List<ForecastSubscription>> GetAllForecastSubScriptions()
+        {
+            return await _retryPolicy.ExecuteAsync(async () => await _context.ForecastSubscriptions.ToListAsync());
+        }
+
+        public async Task AddCurrentConditionSubscription(CurrentConditionSubscription subscription)
         {
             await _retryPolicy.ExecuteAsync(async () =>
             {
-                await _context.Subscriptions.AddAsync(subscription);
+                await _context.CurrentConditionSubscriptions.AddAsync(subscription);
                 await _context.SaveChangesAsync();
             });
         }
 
-        public async Task AddSubscriptions(List<Subscription> subscriptions)
+        public async Task AddForecastSubscription(ForecastSubscription subscription)
         {
             await _retryPolicy.ExecuteAsync(async () =>
             {
-                await _context.Subscriptions.AddRangeAsync(subscriptions);
+                await _context.ForecastSubscriptions.AddAsync(subscription);
                 await _context.SaveChangesAsync();
             });
         }
 
-        public async Task RemoveSubscription(Subscription subscription)
+        public async Task AddCurrentConditionSubscriptions(List<CurrentConditionSubscription> subscriptions)
         {
             await _retryPolicy.ExecuteAsync(async () =>
             {
-                _context.Subscriptions.Remove(subscription);
+                await _context.CurrentConditionSubscriptions.AddRangeAsync(subscriptions);
+                await _context.SaveChangesAsync();
+            });
+        }
+
+        public async Task AddForecastSubscriptions(List<ForecastSubscription> subscriptions)
+        {
+            await _retryPolicy.ExecuteAsync(async () =>
+            {
+                await _context.ForecastSubscriptions.AddRangeAsync(subscriptions);
+                await _context.SaveChangesAsync();
+            });
+        }
+
+        public async Task RemoveCurrentConditionSubscription(CurrentConditionSubscription subscription)
+        {
+            await _retryPolicy.ExecuteAsync(async () =>
+            {
+                _context.CurrentConditionSubscriptions.Remove(subscription);
+                await _context.SaveChangesAsync();
+            });
+        }
+
+        public async Task RemoveForecastSubscription(ForecastSubscription subscription)
+        {
+            await _retryPolicy.ExecuteAsync(async () =>
+            {
+                _context.ForecastSubscriptions.Remove(subscription);
                 await _context.SaveChangesAsync();
             });
         }
@@ -79,7 +120,7 @@ namespace Server.Data.Repositories
         {
             await _retryPolicy.ExecuteAsync(async () =>
             {
-                var subscription = await GetSubscription(subscriptionId);
+                var subscription = await _context.Subscriptions.Where(s => s.SubscriptionId == subscriptionId).SingleOrDefaultAsync();
                 _context.Subscriptions.Remove(subscription);
                 await _context.SaveChangesAsync();
             });
