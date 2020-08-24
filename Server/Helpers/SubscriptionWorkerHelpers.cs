@@ -1,5 +1,4 @@
 using System.Linq;
-using System.Net.Sockets;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -21,29 +20,44 @@ namespace Server.Helpers
             {
 
                 var initialSubscriptionsEnv = Environment.GetEnvironmentVariable("WEATHERSTDR_INITIAL_SUBSCRIPTIONS");
-                // Example of initialSubscriptions string "StationId=IODENS3;Interval=10,StationId=IKASTR4;Interval=5"
+                // Example of initialSubscriptions string "StationId=IODENS3;Interval=10|StationId=IKASTR4;Interval=5|GeoCode=55.3733417,10.4079504;Interval=10"
                 if (initialSubscriptionsEnv != null)
                 {
                     var initialSubscriptions = initialSubscriptionsEnv.Split(",");
                     foreach (var subscription in initialSubscriptions)
                     {
-                        var arguments = subscription.Split(";");
-                        if (!arguments.Any(a => a.StartsWith("StationId")) || !arguments.Any(a => a.StartsWith(("Interval"))))
+                        try
                         {
-                            logger.LogWarning($"'WEATHERSTDR_INITIAL_SUBSCRIPTIONS' Has not followed the correct format for subscription {initialSubscriptions[0]}");
-                            break;
-                        }
-                        else
-                        {
-                            string stationId = arguments[0][10..]; // Cutting out "StationId="
+                            var arguments = subscription.Split(";");
+
                             int intervalSeconds;
                             var intervalConversionSucces = int.TryParse(arguments[1][9..], out intervalSeconds); // Cutting out "Interval="
-                            if (!intervalConversionSucces) logger.LogWarning($"'WEATHERSTDR_INITIAL_SUBSCRIPTIONS' Has not followed the correct format for subscription {subscription}. Can't convert interval to a number");
-                            subscriptions.Add(new Subscription
+                            if (!intervalConversionSucces) throw new FormatException();
+
+                            if (arguments[0].StartsWith("StationId"))
                             {
-                                StationId = stationId,
-                                IntervalSeconds = intervalSeconds
-                            });
+                                string stationId = arguments[0][10..]; // Cutting out "StationId="
+
+                                subscriptions.Add(new CurrentConditionSubscription
+                                {
+                                    StationId = stationId,
+                                    IntervalSeconds = intervalSeconds
+                                });
+                            }
+                            else if (arguments[0].StartsWith("GeoCode"))
+                            {
+                                string geoCode = arguments[0][8..]; // Cutting out "GeoCode="
+
+                                subscriptions.Add(new ForecastSubscription
+                                {
+                                    GeoCode = geoCode,
+                                    IntervalSeconds = intervalSeconds
+                                });
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            logger.LogWarning($"'WEATHERSTDR_INITIAL_SUBSCRIPTIONS' Has not followed the correct format");
                         }
                     }
 
@@ -73,7 +87,7 @@ namespace Server.Helpers
             // If the amount of brokers is less than or equal to 1, replication should be 1. Otherwise if amount of brokers is 3 for example, replication should be 2.
             var amountOfReplicationForCluster = (short)(amountOfBrokersInCluster <= 1 ? 1 : amountOfBrokersInCluster - 1);
 
-            // Testing if topics contains the two topics we use
+            // Testing if kafka contains the two topics we use
             if (!clusterTopics.Contains(KafkaHelpers.SubscriptionActionsTopic))
             {
                 await CreateTopic(adminClient, logger, KafkaHelpers.SubscriptionActionsTopic, replicationFactor: amountOfReplicationForCluster);
