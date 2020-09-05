@@ -13,15 +13,16 @@ namespace Server.Helpers
 {
     public static class SubscriptionWorkerHelpers
     {
+        // This method will load subscriptions from the environment variable "WEATHERSTDR_INITIAL_SUBSCRIPTIONS"
+        // Example of environment variable value: "StationId=IODENS3;Interval=10|StationId=IKASTR4;Interval=5|GeoCode=55.3733417,10.4079504;Interval=10"
         public static void InitialSubscriptionsLoad(ILogger logger, out List<CurrentConditionSubscription> currentConditionSubscriptions, out List<ForecastSubscription> forecastSubscriptions)
         {
             currentConditionSubscriptions = new List<CurrentConditionSubscription>();
             forecastSubscriptions = new List<ForecastSubscription>();
-            
+
             if (!File.Exists(FileHelpers.InitialSubscriptionsFileCheckPath))
             {
                 var initialSubscriptionsEnv = Environment.GetEnvironmentVariable("WEATHERSTDR_INITIAL_SUBSCRIPTIONS");
-                // Example of initialSubscriptions string "StationId=IODENS3;Interval=10|StationId=IKASTR4;Interval=5|GeoCode=55.3733417,10.4079504;Interval=10"
                 if (initialSubscriptionsEnv != null)
                 {
                     var initialSubscriptions = initialSubscriptionsEnv.Split(",");
@@ -74,31 +75,38 @@ namespace Server.Helpers
 
         public async static Task EnsureCreatedTopics(ILogger logger)
         {
-            // The admin client contains metadata about the cluster, groups and topics.
-            using var adminClient = new AdminClientBuilder(new AdminClientConfig { BootstrapServers = KafkaHelpers.BootstrapServers }).Build();
-
-            var clusterMetaData = adminClient.GetMetadata(TimeSpan.FromSeconds(10)); // 10 seconds timeout
-
-            var amountOfBrokersInCluster = clusterMetaData.Brokers.Count();
-
-            // List of all topics in the cluster
-            var clusterTopics = clusterMetaData.Topics.Select(t => t.Topic);
-
-            // If the amount of brokers is less than or equal to 1, replication should be 1. Otherwise if amount of brokers is 3 for example, replication should be 2.
-            var amountOfReplicationForCluster = (short)(amountOfBrokersInCluster <= 1 ? 1 : amountOfBrokersInCluster - 1);
-
-            // Testing if kafka contains the two topics we use
-            if (!clusterTopics.Contains(KafkaHelpers.SubscriptionActionsTopic))
+            try
             {
-                await CreateTopic(adminClient, logger, KafkaHelpers.SubscriptionActionsTopic, replicationFactor: amountOfReplicationForCluster);
+                // The admin client contains metadata about the cluster, groups and topics.
+                using var adminClient = new AdminClientBuilder(new AdminClientConfig { BootstrapServers = KafkaHelpers.BootstrapServers }).Build();
+
+                var clusterMetaData = adminClient.GetMetadata(TimeSpan.FromSeconds(10)); // 10 seconds timeout
+
+                var amountOfBrokersInCluster = clusterMetaData.Brokers.Count();
+
+                // List of all topics in the cluster
+                var clusterTopics = clusterMetaData.Topics.Select(t => t.Topic);
+
+                // If the amount of brokers is less than or equal to 1, replication should be 1. Otherwise if amount of brokers is 3 for example, replication should be 2.
+                var amountOfReplicationForCluster = (short)(amountOfBrokersInCluster <= 1 ? 1 : amountOfBrokersInCluster - 1);
+
+                // Testing if kafka contains the two topics we use
+                if (!clusterTopics.Contains(KafkaHelpers.SubscriptionActionsTopic))
+                {
+                    await CreateTopic(adminClient, logger, KafkaHelpers.SubscriptionActionsTopic, replicationFactor: amountOfReplicationForCluster);
+                }
+                if (!clusterTopics.Contains(KafkaHelpers.WeatherDataTopic))
+                {
+                    await CreateTopic(adminClient, logger, KafkaHelpers.WeatherDataTopic, replicationFactor: amountOfReplicationForCluster);
+                }
+
+                logger.LogInformation("Kafka cluster succesfully configured");
+
             }
-            if (!clusterTopics.Contains(KafkaHelpers.WeatherDataTopic))
+            catch (Confluent.Kafka.KafkaException e)
             {
-                await CreateTopic(adminClient, logger, KafkaHelpers.WeatherDataTopic, replicationFactor: amountOfReplicationForCluster);
+                logger.LogError(e.Message);
             }
-
-            logger.LogInformation("Kafka cluster succesfully configured");
-
         }
 
         private async static Task CreateTopic(IAdminClient adminClient, ILogger logger, string topicName, int partitions = 1, short replicationFactor = 1)
