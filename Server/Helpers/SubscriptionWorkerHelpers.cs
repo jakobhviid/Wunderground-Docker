@@ -13,6 +13,7 @@ namespace Server.Helpers
 {
     public static class SubscriptionWorkerHelpers
     {
+        public static bool DatabaseReady { get; set; }
         // This method will load subscriptions from the environment variable "WEATHERSTDR_INITIAL_SUBSCRIPTIONS"
         // Example of environment variable value: "StationId=IODENS3;Interval=10|StationId=IKASTR4;Interval=5|GeoCode=55.3733417,10.4079504;Interval=10"
         public static void InitialSubscriptionsLoad(ILogger logger, out List<CurrentConditionSubscription> currentConditionSubscriptions, out List<ForecastSubscription> forecastSubscriptions)

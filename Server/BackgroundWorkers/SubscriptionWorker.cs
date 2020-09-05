@@ -42,6 +42,10 @@ namespace Server.BackgroundWorkers
             {
                 var repo = scope.ServiceProvider.GetRequiredService<ISubscriptionRepo>();
 
+                // waiting for database to be ready
+                while (!SubscriptionWorkerHelpers.DatabaseReady) {
+                    await Task.Delay(TimeSpan.FromMilliseconds(200)); 
+                }
                 // Loading subscriptions from the database (if any)
                 var currentConditionSubscriptions = await repo.GetAllCurrentConditionSubScriptions();
                 var forecastSubscriptions = await repo.GetAllForecastSubScriptions();

@@ -24,9 +24,9 @@ namespace Server.Data.Repositories
             _context = context;
             _logger = logger;
 
-            _retryPolicy = Policy.Handle<SqliteException>()
+            _retryPolicy = Policy.Handle<Microsoft.Data.Sqlite.SqliteException>()
                 .WaitAndRetryAsync(MaxRetries,
-                    times => TimeSpan.FromMilliseconds(times * 200), // Waiting longer and longer after each retry.
+                    times => TimeSpan.FromMilliseconds(times * 1000), // Waiting longer and longer after each retry.
                     onRetry: (exception, _) =>
                 {
                     logger.LogWarning(exception.Message); // logging exception messages.

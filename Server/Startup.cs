@@ -29,7 +29,7 @@ namespace Server
             services.AddHealthEndpoints();
 
             services.AddDbContext<DataContext>(options =>
-            options.UseSqlite($"Data Source={FileHelpers.SQLiteDBFilePath}"));
+                options.UseSqlite($"Data Source={FileHelpers.SQLiteDBFilePath}"));
 
             services.AddScoped<ISubscriptionRepo, SubscriptionRepo>();
 
@@ -91,6 +91,8 @@ namespace Server
                             context.Database.Migrate();
 
                             logger.LogInformation("Database migration & connection successful");
+
+                            SubscriptionWorkerHelpers.DatabaseReady = true;
 
                             break; // just break if migration is successful
                         }
