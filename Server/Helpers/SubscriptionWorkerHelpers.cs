@@ -13,12 +13,13 @@ namespace Server.Helpers
 {
     public static class SubscriptionWorkerHelpers
     {
-        public static List<Subscription> InitialSubscriptionsLoad(ILogger logger)
+        public static void InitialSubscriptionsLoad(ILogger logger, out List<CurrentConditionSubscription> currentConditionSubscriptions, out List<ForecastSubscription> forecastSubscriptions)
         {
-            var subscriptions = new List<Subscription>();
+            currentConditionSubscriptions = new List<CurrentConditionSubscription>();
+            forecastSubscriptions = new List<ForecastSubscription>();
+            
             if (!File.Exists(FileHelpers.InitialSubscriptionsFileCheckPath))
             {
-
                 var initialSubscriptionsEnv = Environment.GetEnvironmentVariable("WEATHERSTDR_INITIAL_SUBSCRIPTIONS");
                 // Example of initialSubscriptions string "StationId=IODENS3;Interval=10|StationId=IKASTR4;Interval=5|GeoCode=55.3733417,10.4079504;Interval=10"
                 if (initialSubscriptionsEnv != null)
@@ -38,7 +39,7 @@ namespace Server.Helpers
                             {
                                 string stationId = arguments[0][10..]; // Cutting out "StationId="
 
-                                subscriptions.Add(new CurrentConditionSubscription
+                                currentConditionSubscriptions.Add(new CurrentConditionSubscription
                                 {
                                     StationId = stationId,
                                     IntervalSeconds = intervalSeconds
@@ -48,7 +49,7 @@ namespace Server.Helpers
                             {
                                 string geoCode = arguments[0][8..]; // Cutting out "GeoCode="
 
-                                subscriptions.Add(new ForecastSubscription
+                                forecastSubscriptions.Add(new ForecastSubscription
                                 {
                                     GeoCode = geoCode,
                                     IntervalSeconds = intervalSeconds
@@ -69,7 +70,6 @@ namespace Server.Helpers
                     logger.LogInformation("'WEATHERSTDR_INITIAL_SUBSCRIPTIONS' has not been provided");
                 }
             }
-            return subscriptions;
         }
 
         public async static Task EnsureCreatedTopics(ILogger logger)

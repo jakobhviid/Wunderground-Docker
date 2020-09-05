@@ -42,28 +42,44 @@ namespace Server.BackgroundWorkers
             {
                 var repo = scope.ServiceProvider.GetRequiredService<ISubscriptionRepo>();
 
-                // this list will hold all subscriptions and if the container restarts the subscriptions are fetched from the sqlite database.
-                List<Subscription> subscriptions = await repo.GetAllSubScriptions();
+                // Loading subscriptions from the database (if any)
+                var currentConditionSubscriptions = await repo.GetAllCurrentConditionSubScriptions();
+                var forecastSubscriptions = await repo.GetAllForecastSubScriptions();
 
-                var initialSubscriptions = SubscriptionWorkerHelpers.InitialSubscriptionsLoad(_logger);
+                // Loading subscriptions from environment (if any)
+                List<CurrentConditionSubscription> initialCurrentConditionSubscriptions;
+                List<ForecastSubscription> initialForecastSubscriptions;
+                SubscriptionWorkerHelpers.InitialSubscriptionsLoad(_logger, out initialCurrentConditionSubscriptions, out initialForecastSubscriptions);
 
-                subscriptions.AddRange(initialSubscriptions);
+                // Adding subscriptions from environment to database for future startups.
+                await repo.AddCurrentConditionSubscriptions(initialCurrentConditionSubscriptions);
+                await repo.AddForecastSubscriptions(initialForecastSubscriptions);
 
-                await repo.AddSubscriptions(initialSubscriptions);
+                // Adding subscriptions from environment to list of subcsriptions from database
+                currentConditionSubscriptions.AddRange(initialCurrentConditionSubscriptions);
+                forecastSubscriptions.AddRange(initialForecastSubscriptions);
 
-                foreach (var subscription in subscriptions)
+                // Start current condition subscriptions
+                foreach (var currentSubscription in currentConditionSubscriptions)
                 {
                     // This timer should run in the background. So the result is discarded with '_'
-                    _ = Task.Run(() => StartTimer(subscription));
+                    _ = Task.Run(() => StartTimer(currentSubscription));
                 }
 
-                ListenForSubscriptionsActions(stoppingToken, subscriptions);
+                // Start forecast subscriptions
+                foreach (var forecastSubscription in forecastSubscriptions)
+                {
+                    // This timer should run in the background. So the result is discarded with '_'
+                    _ = Task.Run(() => StartTimer(forecastSubscription));
+                }
+
+                ListenForSubscriptionsActions(stoppingToken, currentConditionSubscriptions, forecastSubscriptions);
             }
         }
 
-        public async void ListenForSubscriptionsActions(CancellationToken stoppingToken, List<Subscription> subscriptions)
+        public async void ListenForSubscriptionsActions(CancellationToken stoppingToken, List<CurrentConditionSubscription> currentConditionSubscriptions, List<ForecastSubscription> forecastSubscriptions)
         {
-            // Listening and waiting for new subscriptions
+            // Listening and waiting for new subscription requests from kafka
             var consumerConfig = new ConsumerConfig
             {
                 GroupId = "new-subscriptions-group",
@@ -96,20 +112,41 @@ namespace Server.BackgroundWorkers
                             _logger.LogInformation("A subscription action request has arrived");
                             switch (request.Action)
                             {
-                                case SubscriptionAction.CREATE:
-                                    var subscription = new Subscription
+                                case SubscriptionAction.CREATECURRENTCONDITION:
+                                    var currentConditionRequest = JsonConvert.DeserializeObject<NewCurrentConditionSubscriptionRequestDTO>(messageJsonString);
+
+                                    var currentConditionSubscription = new CurrentConditionSubscription
                                     {
-                                        StationId = request.StationId,
-                                        IntervalSeconds = request.IntervalSeconds
+                                        StationId = currentConditionRequest.StationId,
+                                        IntervalSeconds = currentConditionRequest.IntervalSeconds
                                     };
+
                                     // persisting the newly added subscription
-                                    await repo.AddSubscription(subscription);
+                                    await repo.AddCurrentConditionSubscription(currentConditionSubscription);
 
                                     // adding it to the list of subscriptions
-                                    subscriptions.Add(subscription);
+                                    currentConditionSubscriptions.Add(currentConditionSubscription);
 
                                     // starting the subscription. I want this to run in the background. So I discard the result  with '_'
-                                    _ = Task.Run(() => StartTimer(subscription));
+                                    _ = Task.Run(() => StartTimer(currentConditionSubscription));
+                                    break;
+                                case SubscriptionAction.CREATEFORECAST:
+                                    var forecastSubscriptionRequest = JsonConvert.DeserializeObject<ForecastSubscription>(messageJsonString);
+
+                                    var forecastSubscription = new ForecastSubscription
+                                    {
+                                        GeoCode = forecastSubscriptionRequest.GeoCode,
+                                        IntervalSeconds = forecastSubscriptionRequest.IntervalSeconds
+                                    };
+
+                                    // persisting the newly added subscription
+                                    await repo.AddForecastSubscription(forecastSubscription);
+
+                                    // adding it to the list of subscriptions
+                                    forecastSubscriptions.Add(forecastSubscription);
+
+                                    // starting the subscription. I want this to run in the background. So I discard the result  with '_'
+                                    _ = Task.Run(() => StartTimer(forecastSubscription));
                                     break;
                                 case SubscriptionAction.DELETE:
                                     // TODO: Delete
@@ -122,10 +159,12 @@ namespace Server.BackgroundWorkers
                         {
                             _logger.LogError(ex.Error.ToString());
                         }
+                        // If the request from kafka is not correctly formatted an error will be thrown and catched here
                         catch (Newtonsoft.Json.JsonException ex)
                         {
                             _logger.LogError(ex.Message);
                         }
+                        // Cancelled background worker
                         catch (OperationCanceledException)
                         {
                             consumer.Close();
@@ -139,7 +178,7 @@ namespace Server.BackgroundWorkers
             _producer.Dispose();
         }
 
-        public async Task FetchData(Subscription subscription)
+        public async Task FetchData(CurrentConditionSubscription subscription)
         {
             try
             {
@@ -155,7 +194,34 @@ namespace Server.BackgroundWorkers
             }
         }
 
-        public void StartTimer(Subscription subscription)
+        public void StartTimer(CurrentConditionSubscription subscription)
+        {
+            object timerState = new object();
+
+            // Start an accurate timer based on subscriptions.intervalseconds
+            Timer timer = new Timer(async (timerState) =>
+            {
+                await FetchData(subscription);
+            }, timerState, 0, (int)TimeSpan.FromSeconds(subscription.IntervalSeconds).TotalMilliseconds);
+        }
+
+        public async Task FetchData(ForecastSubscription subscription)
+        {
+            try
+            {
+                using var scope = _services.CreateScope();
+                var wundergroundService = scope.ServiceProvider.GetRequiredService<IWundergroundService>();
+                var data = await wundergroundService.Get5DayForecast(subscription.GeoCode);
+
+                await KafkaHelpers.SendMessageAsync(KafkaHelpers.WeatherDataTopic, data, _producer);
+            }
+            catch (HttpRequestException e)
+            {
+                _logger.LogError($"Fetch for GeoCode={subscription.GeoCode} threw an error: {e.Message}");
+            }
+        }
+
+        public void StartTimer(ForecastSubscription subscription)
         {
             object timerState = new object();
 
