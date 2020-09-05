@@ -26,7 +26,7 @@ namespace Server.Helpers
                 var initialSubscriptionsEnv = Environment.GetEnvironmentVariable("WEATHERSTDR_INITIAL_SUBSCRIPTIONS");
                 if (initialSubscriptionsEnv != null)
                 {
-                    var initialSubscriptions = initialSubscriptionsEnv.Split(",");
+                    var initialSubscriptions = initialSubscriptionsEnv.Split("|");
                     foreach (var subscription in initialSubscriptions)
                     {
                         try
@@ -58,9 +58,10 @@ namespace Server.Helpers
                                 });
                             }
                         }
-                        catch (Exception)
+                        catch (Exception e)
                         {
                             logger.LogWarning($"'WEATHERSTDR_INITIAL_SUBSCRIPTIONS' Has not followed the correct format");
+                            Console.WriteLine(e.Message);
                         }
                     }
 
