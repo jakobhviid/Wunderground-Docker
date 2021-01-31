@@ -8,4 +8,7 @@ replace-librdkafka.sh
 
 check-environment.sh
 
-dotnet "$DOTNET_PROGRAM_HOME"/DashboardServer.dll
+#Traps if the process is stopped before the .dll is executed
+trap "exit 0" SIGTERM SIGINT
+#.dll handles exit code once started.
+exec dotnet "$DOTNET_PROGRAM_HOME"/DashboardServer.dll
