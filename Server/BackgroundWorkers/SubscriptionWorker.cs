@@ -86,7 +86,7 @@ namespace Server.BackgroundWorkers
             // Listening and waiting for new subscription requests from kafka
             var consumerConfig = new ConsumerConfig
             {
-                GroupId = "new-subscriptions-group",
+                GroupId = "weather-station-new-subscription-group",
                 AutoOffsetReset = AutoOffsetReset.Earliest,
             };
 

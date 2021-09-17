@@ -23,6 +23,8 @@ RUN apt-get update && apt-get install -y sqlite3
 
 RUN mkdir /database/
 
+COPY ./Server/test.db /database/test.db
+
 ENV DOTNET_PROGRAM_HOME=/opt/WundergroundServer
 
 COPY --from=build /build/out ${DOTNET_PROGRAM_HOME}
