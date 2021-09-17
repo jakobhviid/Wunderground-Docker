@@ -34,7 +34,7 @@ namespace Server.Services
             return await _retryPolicy.ExecuteAsync(async () =>
             {
                 var response = await client.GetAsync(
-                    $"stationId={stationId.Trim()}&format=json&units=m&apiKey={WundergroundAPIKey.Trim()}");
+                    $"?stationId={stationId.Trim()}&format=json&units=m&apiKey={WundergroundAPIKey.Trim()}");
 
                 response.EnsureSuccessStatusCode(); // Throws error if not successful
 
@@ -71,7 +71,7 @@ namespace Server.Services
             return await _retryPolicy.ExecuteAsync(async () =>
             {
                 var response = await client.GetAsync(
-                    $"geocode={geoCode.Trim()}&format=json&units=m&language=en-US&apiKey={WundergroundAPIKey.Trim()}");
+                    $"?geocode={geoCode.Trim()}&format=json&units=m&language=en-US&apiKey={WundergroundAPIKey.Trim()}");
 
                 response.EnsureSuccessStatusCode(); // Throws error if not successful
 

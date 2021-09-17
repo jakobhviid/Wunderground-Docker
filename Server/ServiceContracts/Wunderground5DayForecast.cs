@@ -6,7 +6,7 @@ namespace Server.ServiceContracts
     public class Wunderground5DayForecast
     {
         [JsonProperty("dayOfWeek")] public string[] DayOfWeek { get; set; }
-        [JsonProperty("expirationTimeUtc")] public long ExpirationTimeUtc { get; set; }
+        [JsonProperty("expirationTimeUtc")] public long[] ExpirationTimeUtc { get; set; }
         [JsonProperty("moonPhase")] public string[] MoonPhase { get; set; }
         [JsonProperty("moonPhaseCode")] public string[] MoonPhaseCode { get; set; }
         [JsonProperty("moonPhaseDay")] public int[] MoonPhaseDay { get; set; }
@@ -42,7 +42,7 @@ namespace Server.ServiceContracts
         [JsonProperty("qualifierCode")] public string[] QualifierCode { get; set; }
         [JsonProperty("qualifierPhrase")] public string[] QualifierPhrase { get; set; }
         [JsonProperty("relativeHumidity")] public int[] RelativeHumidity { get; set; }
-        [JsonProperty("snowRange")] public float[] SnowRange { get; set; }
+        [JsonProperty("snowRange")] public float?[] SnowRange { get; set; }
         [JsonProperty("temperature")] public int[] Temperature { get; set; }
         [JsonProperty("temperatureHeatIndex")] public int[] TemperatureHeatIndex { get; set; }
         [JsonProperty("temperatureWindChill")] public int[] TemperatureWindChill { get; set; }
