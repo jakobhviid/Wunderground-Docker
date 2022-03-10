@@ -23,6 +23,8 @@ namespace Server.BackgroundWorkers
         private readonly ILogger<SubscriptionWorker> _logger;
         private readonly IProducer<Null, string> _producer;
 
+        private readonly ICollection<Timer> _timers = new List<Timer>();
+
         public SubscriptionWorker(ILogger<SubscriptionWorker> logger, IServiceProvider services)
         {
             _services = services;
@@ -207,6 +209,7 @@ namespace Server.BackgroundWorkers
             {
                 await FetchData(subscription);
             }, timerState, 0, (int)TimeSpan.FromSeconds(subscription.IntervalSeconds).TotalMilliseconds);
+            _timers.Add(timer);
         }
 
         public async Task FetchData(ForecastSubscription subscription)
